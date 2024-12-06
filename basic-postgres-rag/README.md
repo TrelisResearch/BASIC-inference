@@ -4,7 +4,8 @@ A minimal demo showing how to use Postgres for vector search using pgvector (den
 
 ## ADVANCED Version Features
 
-> [!TIP] Purchase life-time access to the advanced version at: https://trelis.com/ADVANCED-inference
+> [!TIP]
+> Purchase life-time access to the advanced version at: https://trelis.com/ADVANCED-inference
 
 <details>
 - **Document Processing**
