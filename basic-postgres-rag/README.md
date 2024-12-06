@@ -8,6 +8,7 @@ A minimal demo showing how to use Postgres for vector search using pgvector (den
 > Purchase life-time access to the advanced version at: https://trelis.com/ADVANCED-inference
 
 <details>
+
 - **Document Processing**
   - Handles PDF, DOCX, TXT, and MD files automatically
   - Preserves metadata (page numbers, line numbers, sections)
