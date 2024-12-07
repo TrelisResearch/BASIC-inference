@@ -109,6 +109,7 @@ psql -d vector_demo -c "SET search_path TO public, bm_catalog;"
 First, let's generate our embeddings:
 
 ```bash
+uv venv
 # Install requirements
 uv pip install -r requirements.txt
 
