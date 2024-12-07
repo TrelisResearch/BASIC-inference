@@ -93,6 +93,10 @@ cargo pgrx install --release
 ### Create Database and Enable Extensions
 
 ```bash
+# Optional: Drop existing database (useful for starting fresh)
+dropdb vector_demo
+dropuser vector_user
+
 # Create database and user
 createdb vector_demo
 createuser -s vector_user
@@ -106,63 +110,40 @@ psql -d vector_demo -c "SET search_path TO public, bm_catalog;"
 
 ## Demo
 
-First, let's generate our embeddings:
+### 1. Set Up Database and Add Data
 
 ```bash
+# Make sure your virtual environment is activated
+cd basic-postgres-rag
 uv venv
-# Install requirements
 uv pip install -r requirements.txt
 
-# Generate embeddings
-uv run python generate_demo_embeddings.py > embeddings.sql
+# Run the script to create table and add data with embeddings
+uv run python generate_demo_embeddings.py
 ```
 
-Now connect to the database:
-```bash
-psql vector_demo
+### 2. Set Up BM25 Search
+
+Open the postgres terminal:
+bash
+psql -d vector_demo -U vector_user
 ```
 
-### 1. Create Tables
-
+Then run:
 ```sql
 -- Set search path to include bm_catalog
 SET search_path TO public, bm_catalog;
 
--- Drop BM25 statistics if they exist
-SELECT bm25_drop('documents_content_bm25');
-
--- Drop existing table if it exists
-DROP TABLE IF EXISTS documents;
-
--- Create table
-CREATE TABLE documents (
-    id SERIAL PRIMARY KEY,
-    content TEXT NOT NULL,
-    embedding vector(768)  -- Dense vector for similarity search
-);
-
--- Insert sample texts first
-INSERT INTO documents (content) VALUES 
-    ('The capital of France is Paris'),
-    ('Paris is known for the Eiffel Tower'),
-    ('The capital of Japan is Tokyo'),
-    ('Tokyo is famous for sushi');
-
--- Create BM25 statistics (must be done after data is inserted)
+-- Create and refresh BM25 statistics
 SELECT bm25_create('documents', 'content', 'documents_content_bm25');
-
--- Add dense vectors
-\i embeddings.sql
-
--- Now refresh BM25 statistics
 SELECT bm25_refresh('documents_content_bm25');
 ```
 
-### 2. Run Searches
-
+### 3. Run Searches
+```
 #### Dense Vector Search
 ```sql
--- Search for content about Paris
+-- Grab one row of data to search against
 WITH query AS (
     SELECT embedding 
     FROM documents 
@@ -174,7 +155,7 @@ SELECT
     1 - (d.embedding <=> q.embedding) as similarity
 FROM documents d, query q
 ORDER BY d.embedding <=> q.embedding
-LIMIT 3;
+LIMIT 4;
 ```
 
 Example output:
@@ -182,8 +163,9 @@ Example output:
                content               |     similarity     
 -------------------------------------+--------------------
  The capital of France is Paris      |                  1
- Paris is known for the Eiffel Tower | 0.7303327241274449
- The capital of Japan is Tokyo       | 0.7289948838545682
+ The capital of Japan is Tokyo       | 0.8014076652679855
+ Paris is known for the Eiffel Tower | 0.7418301003706876
+ Tokyo is famous for sushi           |  0.577042391843145
 ```
 
 #### Sparse Vector (BM25) Search
@@ -197,25 +179,26 @@ WITH query_vector AS (
     )::sparsevec AS qv
 )
 SELECT content,
-       bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec <=> 
-           (SELECT qv FROM query_vector) as score
+       1 - (bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec <=> 
+           (SELECT qv FROM query_vector)) as similarity
 FROM documents
-ORDER BY score ASC  -- Lower score means more similar
-LIMIT 3;
+ORDER BY similarity DESC  -- Higher score means more similar
+LIMIT 4;
 ```
 
 Example output:
 ```
-               content               |       score       
--------------------------------------+-------------------
- The capital of France is Paris      | 0.591751698707732
- The capital of Japan is Tokyo       | 0.591751698707732
- Paris is known for the Eiffel Tower |                 1
+               content               |     similarity      
+-------------------------------------+---------------------
+ The capital of France is Paris      | 0.40824830129226797
+ The capital of Japan is Tokyo       | 0.40824830129226797
+ Paris is known for the Eiffel Tower |                   0
+ Tokyo is famous for sushi           |                   0
 ```
 
 ## Notes
 
 1. The embeddings are generated using the nomic-embed-text-v1.5 model (768 dimensions)
 2. The dense vector search uses cosine similarity (1 - distance)
-3. The sparse vector search uses BM25 scoring
+3. The sparse vector search uses BM25 scoring along with cosine similarity
 
