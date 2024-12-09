@@ -2,6 +2,9 @@
 
 A minimal demo showing how to use Postgres for vector search using pgvector (dense) and pg_bestmatch (sparse/BM25).
 
+>[!WARNING]
+>This is not functioning and needs review for pgvecto.rs to work.
+
 ## ADVANCED Version Features
 
 > [!TIP]
