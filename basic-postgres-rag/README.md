@@ -94,8 +94,8 @@ cargo pgrx install --release
 
 ```bash
 # Optional: Drop existing database (useful for starting fresh)
-dropdb vector_demo
-dropuser vector_user
+dropdb vector_demo || true  # The || true prevents errors if database doesn't exist
+dropuser vector_user || true
 
 # Create database and user
 createdb vector_demo
@@ -124,12 +124,12 @@ uv run python generate_demo_embeddings.py
 
 ### 2. Set Up BM25 Search
 
-Open the postgres terminal:
-bash
+First, open the postgres terminal:
+```bash
 psql -d vector_demo -U vector_user
 ```
 
-Then run:
+Then set up BM25 statistics and precompute sparse vectors:
 ```sql
 -- Set search path to include bm_catalog
 SET search_path TO public, bm_catalog;
@@ -137,11 +137,29 @@ SET search_path TO public, bm_catalog;
 -- Create and refresh BM25 statistics
 SELECT bm25_create('documents', 'content', 'documents_content_bm25');
 SELECT bm25_refresh('documents_content_bm25');
+
+-- Add column for sparse vectors
+ALTER TABLE documents ADD COLUMN sparse_vector svector;
+
+-- Precompute sparse vectors for all documents
+UPDATE documents 
+SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::svector;
+
+-- Create efficient index for sparse vectors using pgvecto.rs
+CREATE INDEX ON documents USING vectors (sparse_vector svector_dot_ops);
 ```
 
-### 3. Run Searches
+### 3. Create Dense Vector Index
+```sql
+-- Create HNSW index for dense vectors using pgvector
+CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);
 ```
-#### Dense Vector Search
+
+create sparse vector index here
+
+### 4. Run Searches
+
+#### Dense Vector Search (using HNSW index)
 ```sql
 -- Grab one row of data to search against
 WITH query AS (
@@ -152,9 +170,9 @@ WITH query AS (
 )
 SELECT 
     d.content,
-    1 - (d.embedding <=> q.embedding) as similarity
+    1 - (d.embedding <#> q.embedding) as similarity  -- <#> operator uses HNSW index
 FROM documents d, query q
-ORDER BY d.embedding <=> q.embedding
+ORDER BY d.embedding <#> q.embedding  -- ORDER BY with LIMIT leverages index for top-k
 LIMIT 4;
 ```
 
@@ -170,20 +188,19 @@ Example output:
 
 #### Sparse Vector (BM25) Search
 ```sql
--- Convert query to sparse vector and search
+-- Convert query to sparse vector and search using index
 WITH query_vector AS (
     SELECT bm25_query_to_svector(
         'documents_content_bm25',
         'capital city',
         'pgvector'
-    )::sparsevec AS qv
+    )::svector AS qv  -- svector type for pgvecto.rs
 )
 SELECT content,
-       1 - (bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec <=> 
-           (SELECT qv FROM query_vector)) as similarity
+       1 - (sparse_vector <#> (SELECT qv FROM query_vector)) as similarity
 FROM documents
-ORDER BY similarity DESC  -- Higher score means more similar
-LIMIT 4;
+ORDER BY sparse_vector <#> (SELECT qv FROM query_vector)
+LIMIT 4;  -- Will efficiently find top-4 using the vector index, without calculating all similarities
 ```
 
 Example output:
@@ -199,6 +216,16 @@ Example output:
 ## Notes
 
 1. The embeddings are generated using the nomic-embed-text-v1.5 model (768 dimensions)
-2. The dense vector search uses cosine similarity (1 - distance)
-3. The sparse vector search uses BM25 scoring along with cosine similarity
+2. The dense vector search uses:
+   - HNSW indexing with `vector_cosine_ops` for semantic similarity
+   - `<#>` operator uses the cosine distance because of the `vector_cosine_ops` index
+   - We convert to similarity with `1 - distance`
+3. The sparse vector search uses:
+   - Index with `svector_dot_ops` for BM25 sparse vectors
+   - Same `<#>` operator but uses dot product because of the `svector_dot_ops` index
+   - We convert to similarity with `1 - distance`
+4. The `<#>` operator:
+   - Behavior determined by the index operator class
+   - Returns distance (smaller = more similar)
+   - Always needs to be converted to similarity with `1 - distance`
 
