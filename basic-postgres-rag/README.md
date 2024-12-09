@@ -178,3 +178,10 @@ For additional features including PDF processing, optimizations, and development
 - Command Line Interface
 </details>
 
+
+## Issues
+[] I don't understand what the <#> operator is doing and what it defaults to.
+[] Run a basic script (no pgvecto.rs).
+[] Run using pgvecto.rs to index the sparse search.
+
+
