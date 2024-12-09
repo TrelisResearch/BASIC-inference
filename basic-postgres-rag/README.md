@@ -116,7 +116,10 @@ psql -d vector_demo -c "SET search_path TO public, bm_catalog;"
 # Make sure your virtual environment is activated
 cd basic-postgres-rag
 uv venv
-uv pip install -r requirements.txt
+source .venv/bin/activate
+
+uv pip install alembic asyncpg einops greenlet huggingface-hub nltk numpy pgvector psycopg2-binary python-docx python-dotenv requests scipy sentence-transformers
+# uv pip install -r requirements.txt # alternatively
 
 # Run the script to create table and add data with embeddings
 uv run python generate_demo_embeddings.py
@@ -139,14 +142,14 @@ SELECT bm25_create('documents', 'content', 'documents_content_bm25');
 SELECT bm25_refresh('documents_content_bm25');
 
 -- Add column for sparse vectors
-ALTER TABLE documents ADD COLUMN sparse_vector svector;
+ALTER TABLE documents ADD COLUMN sparse_vector sparsevec;
 
 -- Precompute sparse vectors for all documents
 UPDATE documents 
-SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::svector;
+SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec;
 
--- Create efficient index for sparse vectors using pgvecto.rs
-CREATE INDEX ON documents USING vectors (sparse_vector svector_dot_ops);
+-- Create efficient index for sparse vectors using pgvector's IVFFlat
+CREATE INDEX ON documents USING ivfflat (sparse_vector sparsevec_ip_ops);
 ```
 
 ### 3. Create Dense Vector Index
@@ -154,8 +157,6 @@ CREATE INDEX ON documents USING vectors (sparse_vector svector_dot_ops);
 -- Create HNSW index for dense vectors using pgvector
 CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);
 ```
-
-create sparse vector index here
 
 ### 4. Run Searches
 
@@ -194,13 +195,13 @@ WITH query_vector AS (
         'documents_content_bm25',
         'capital city',
         'pgvector'
-    )::svector AS qv  -- svector type for pgvecto.rs
+    )::sparsevec AS qv  -- sparsevec type for pgvector
 )
 SELECT content,
-       1 - (sparse_vector <#> (SELECT qv FROM query_vector)) as similarity
+       sparse_vector <#> (SELECT qv FROM query_vector) as distance
 FROM documents
 ORDER BY sparse_vector <#> (SELECT qv FROM query_vector)
-LIMIT 4;  -- Will efficiently find top-4 using the vector index, without calculating all similarities
+LIMIT 4;  -- Will efficiently find top-4 using the IVFFlat index
 ```
 
 Example output:
@@ -221,11 +222,12 @@ Example output:
    - `<#>` operator uses the cosine distance because of the `vector_cosine_ops` index
    - We convert to similarity with `1 - distance`
 3. The sparse vector search uses:
-   - Index with `svector_dot_ops` for BM25 sparse vectors
-   - Same `<#>` operator but uses dot product because of the `svector_dot_ops` index
-   - We convert to similarity with `1 - distance`
+   - IVFFlat index with `sparsevec_ip_ops` for BM25 sparse vectors
+   - `<#>` operator performs inner product (IP) distance calculation
+   - Lower distance means higher relevance for BM25 scores
 4. The `<#>` operator:
    - Behavior determined by the index operator class
-   - Returns distance (smaller = more similar)
-   - Always needs to be converted to similarity with `1 - distance`
+   - Returns distance (interpretation depends on operator class)
+   - For cosine distance: smaller = more similar
+   - For inner product: larger = more similar
 
