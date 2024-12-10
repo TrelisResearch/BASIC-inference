@@ -9,9 +9,9 @@ For additional features beneficial for production/enterprise applications, see T
 <details>
 <summary>Advanced Features Overview</summary>
 
-- Faster BM25 implementation (using indexing).
+- Faster BM25 implementation (custom implementation allowing for indexing).
 - Stemming and stop-word handling - for improved search performance.
-- Document Chunking (PDF, DOCX, TXT, MD).
+- Text Extraction and Chunking (PDF, DOCX, TXT, MD), using binary search for efficiency.
 - Asynchronous database calls - allowing higher production throughput.
 - Speed/Performance Evaluation.
 - Command line search interface.
@@ -100,7 +100,7 @@ uv run generate_doc_embeddings.py
 
 ## Dense Vector Search
 
-1. Create HNSW index for efficient similarity search:
+1. Create HNSW index for efficient cosine similarity search:
 ```bash
 psql -d vector_demo -c "CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);"
 ```
@@ -120,6 +120,7 @@ psql -d vector_demo
 
 ```sql
 -- First ensure BM25 is properly set up
+-- The bm_catalog schema is created automatically when you install the pg_bestmatch extension using CREATE EXTENSION pg_bestmatch.
 SET search_path TO public, bm_catalog;
 
 -- Recreate and refresh BM25 statistics
@@ -156,11 +157,11 @@ LIMIT 4;
 
 Example output:
 ```
-               content               |     similarity      
+               content               |     bm25_score      
 -------------------------------------+---------------------
- The capital of France is Paris      | 0.40824830129226797
- The capital of Japan is Tokyo       | 0.40824830129226797
- Paris is known for the Eiffel Tower |                   0
+ The capital of France is Paris      |  0.4761905074119568
+ The capital of Japan is Tokyo       |  0.2380952537059784
+ Paris is known for the Eiffel Tower | 0.20000000298023224
  Tokyo is famous for sushi           |                   0
 ```
 
@@ -181,6 +182,15 @@ Example output:
   - Lower distance indicates higher BM25 relevance
   - Negative distances are normal (higher magnitude means better match)
 
+- **Sparse Search**:
+  - No index is used because i) indexing with hnsw works poorly for sparse vectors, and ii) ivfflat is not supported.
+  - The solutions, in principle are:
+    - Use a custom implementation of BM25 that allows for indexing (done in the advanced repo).
+    - Use a dense vector model for the embeddings. This will be slower and require more memory to store the embeddings.
+    - Use pgvecto.rs, a rust implementation that should support indexing with ivfflat.
 
-
-
+- **Notes on the pg_bestmatch extension**:
+  - Under the hood, the text is tokenized using bert uncased.
+    - Capitalization is not preserved (which is good)
+    - There will be some stemming, but it will follow BERT's syntax.
+    - There will be no stop-word removal.

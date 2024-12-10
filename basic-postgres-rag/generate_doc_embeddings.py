@@ -1,3 +1,5 @@
+### A script to generate embeddings for a set of documents and store them in a database
+
 from sentence_transformers import SentenceTransformer
 import psycopg2
 from psycopg2.extras import execute_values
@@ -6,7 +8,7 @@ import numpy as np
 
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
-def get_embeddings(texts, prefix="search_document: "):
+def get_embeddings(texts, prefix="search_document: "): # if the query type is not specified, the prefex used is that for documents
     """Generate embeddings for given texts using the correct prefix."""
     model = SentenceTransformer('nomic-ai/nomic-embed-text-v1.5', trust_remote_code=True)
     # Add prefix to each text
@@ -45,10 +47,10 @@ def setup_demo_data(connection_string="dbname=vector_demo user=vector_user passw
     print("Connecting to database...")
     with psycopg2.connect(connection_string) as conn:
         with conn.cursor() as cur:
-            # Create table
+            # Create table - modified to use CASCADE
             print("Creating documents table...")
             cur.execute("""
-                DROP TABLE IF EXISTS documents;
+                DROP TABLE IF EXISTS documents CASCADE;
                 CREATE TABLE documents (
                     id SERIAL PRIMARY KEY,
                     content TEXT NOT NULL,
