@@ -138,11 +138,24 @@ SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 
 SELECT content, sparse_vector IS NOT NULL as has_vector 
 FROM documents;
 
--- Test BM25 search query
+-- Inspect a query vector (shows which terms are present)
 WITH query_vector AS (
     SELECT bm25_query_to_svector(
         'documents_content_bm25',
-        'Paris capital',  -- Using a test query we know should match
+        'Paris capital france',
+        'pgvector'
+    )::sparsevec AS qv
+)
+SELECT qv FROM query_vector;
+-- Example output: {4:0.5,13:0.5}/17 
+-- This shows non-zero entries at indices 4 and 13, with values of 0.5, in a 17-dimensional space.
+-- This means there is a form of query-side term weighting being implemented (not standard in bm25 AFAIK).
+
+-- Run BM25 search query
+WITH query_vector AS (
+    SELECT bm25_query_to_svector(
+        'documents_content_bm25',
+        'Paris capital france',
         'pgvector'
     )::sparsevec AS qv
 )
@@ -150,7 +163,7 @@ SELECT
     content,
     (sparse_vector <#> (SELECT qv FROM query_vector)) * -1 as bm25_score
 FROM documents
-WHERE sparse_vector IS NOT NULL  -- Ensure we only search valid vectors
+WHERE sparse_vector IS NOT NULL  
 ORDER BY sparse_vector <#> (SELECT qv FROM query_vector)
 LIMIT 4;
 ```
@@ -164,6 +177,8 @@ Example output:
  Paris is known for the Eiffel Tower | 0.20000000298023224
  Tokyo is famous for sushi           |                   0
 ```
+
+Note: The query vector format `{index:value,...}/dimension` shows which terms are present in the query. Each index corresponds to a term in the BM25 vocabulary. While standard BM25 uses binary query vectors (1 for present terms, 0 for absent), we observe non-binary weights in pg_bestmatch's query vectors. The reason for these weights is not documented - this might be an implementation detail or deviation from standard BM25. The `/17` indicates the total vocabulary size.
 
 ## Technical Notes
 
