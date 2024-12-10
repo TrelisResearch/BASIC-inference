@@ -180,7 +180,10 @@ For additional features including PDF processing, optimizations, and development
 
 
 ## Issues
-[] I don't understand what the <#> operator is doing and what it defaults to.
+[x] I don't understand what the <#> operator is doing and what it defaults to. This is the inner product.
+[] What are the options then for sparse search approaches?
+- Use pgvector with dense vectors and no indexing. Heavy to store and slow to search.
+- Use pgvector sparse vectors to store. Can use ivfflat for indexing. Not sure what drawbacks are there.
 [] How does bm25 work, methodically?
 [] How does ivfflat work?
 [] What's the benefit of pgvecto.rs for bm25 if sparse vectors are used?
