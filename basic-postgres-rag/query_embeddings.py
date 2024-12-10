@@ -16,16 +16,16 @@ def search_documents(query, connection_string="dbname=vector_demo user=vector_us
     
     with psycopg2.connect(connection_string) as conn:
         with conn.cursor() as cur:
-            # Use cosine similarity formula: dot(a,b)/(|a|*|b|)
+            # Use cosine similarity operator <=> for cosine distance
+            # Note: We use 1 - cosine_distance to get cosine similarity
             cur.execute("""
                 SELECT 
-                    (embedding <#> %s::vector) / 
-                    (sqrt(abs(embedding <#> embedding)) * sqrt(abs(%s::vector <#> %s::vector))) as cosine_sim,
+                    1 - (embedding <=> %s::vector) as cosine_sim,
                     content
                 FROM documents
-                ORDER BY cosine_sim DESC
+                ORDER BY embedding <=> %s::vector
                 LIMIT 4;
-            """, (query_embedding.tolist(), query_embedding.tolist(), query_embedding.tolist()))
+            """, (query_embedding.tolist(), query_embedding.tolist()))
             
             results = cur.fetchall()
     
@@ -41,8 +41,8 @@ def main():
     
     print("\nSearch Results:")
     print("---------------")
-    for distance, content in results:
-        print(f"Raw Distance/Similarity: {distance:.4f}")
+    for similarity, content in results:
+        print(f"Cosine Similarity: {similarity:.4f}")
         print(f"Content: {content}\n")
 
 if __name__ == "__main__":

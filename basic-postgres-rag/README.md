@@ -2,6 +2,21 @@
 
 A minimal demo showing how to use Postgres for vector search using pgvector (dense) and pg_bestmatch (sparse/BM25).
 
+## Advanced Version
+
+For additional features beneficial for production/enterprise applications, see Trelis' [Advanced Inference Repo](https://trelis.com/ADVANCED-inference).
+
+<details>
+<summary>Advanced Features Overview</summary>
+
+- Faster BM25 implementation (using indexing).
+- Stemming and stop-word handling - for improved search performance.
+- Document Chunking (PDF, DOCX, TXT, MD).
+- Asynchronous database calls - allowing higher production throughput.
+- Speed/Performance Evaluation.
+- Command line search interface.
+</details>
+
 ## Installation
 
 ### MacOS
@@ -87,7 +102,7 @@ uv run generate_doc_embeddings.py
 
 1. Create HNSW index for efficient similarity search:
 ```bash
-psql -d vector_demo -c CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);
+psql -d vector_demo -c "CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);"
 ```
 
 2. Run a search query:
@@ -104,34 +119,37 @@ psql -d vector_demo
 ```
 
 ```sql
--- First set the search path to include bm_catalog
+-- First ensure BM25 is properly set up
 SET search_path TO public, bm_catalog;
 
--- Create and refresh BM25 statistics
+-- Recreate and refresh BM25 statistics
+DROP TABLE IF EXISTS documents_content_bm25;
 SELECT bm25_create('documents', 'content', 'documents_content_bm25');
 SELECT bm25_refresh('documents_content_bm25');
 
--- Add sparse vector column and precompute vectors
+-- Recreate sparse vector column
+ALTER TABLE documents DROP COLUMN IF EXISTS sparse_vector;
 ALTER TABLE documents ADD COLUMN sparse_vector sparsevec;
 UPDATE documents 
 SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec;
 
--- Note: We don't create an index for sparse vectors
--- HNSW and IVFFlat don't work well with highly sparse BM25 vectors
-```
+-- Verify sparse vectors were created properly
+SELECT content, sparse_vector IS NOT NULL as has_vector 
+FROM documents;
 
-2. Run a BM25 search query:
-```sql
+-- Test BM25 search query
 WITH query_vector AS (
     SELECT bm25_query_to_svector(
         'documents_content_bm25',
-        'capital city',
+        'Paris capital',  -- Using a test query we know should match
         'pgvector'
     )::sparsevec AS qv
 )
-SELECT content,
-       sparse_vector <#> (SELECT qv FROM query_vector) as distance
+SELECT 
+    content,
+    (sparse_vector <#> (SELECT qv FROM query_vector)) * -1 as bm25_score
 FROM documents
+WHERE sparse_vector IS NOT NULL  -- Ensure we only search valid vectors
 ORDER BY sparse_vector <#> (SELECT qv FROM query_vector)
 LIMIT 4;
 ```
@@ -154,40 +172,15 @@ Example output:
 
 - **Dense Search**:
   - HNSW index with `vector_cosine_ops`
-  - `<#>` operator returns cosine distance
+  - `<=>` operator returns the cosine distance
   - Similarity = 1 - distance
 
 - **Sparse Search**:
   - No index used (highly sparse vectors)
-  - `<#>` operator returns inner product distance
+  - `<#>` operator returns the inner product, which is the correct way to sum up the bm25 components.
   - Lower distance indicates higher BM25 relevance
   - Negative distances are normal (higher magnitude means better match)
 
-## Advanced Version
 
-For additional features including PDF processing, optimizations, and development tools, see our [Advanced Version](https://trelis.com/ADVANCED-inference).
-
-<details>
-<summary>Advanced Features Overview</summary>
-
-- Document Processing (PDF, DOCX, TXT, MD)
-- Enhanced Vector Search Capabilities
-- Database Optimizations
-- Development Tools
-- Performance Features
-- Command Line Interface
-</details>
-
-
-## Issues
-[x] I don't understand what the <#> operator is doing and what it defaults to. This is the inner product.
-[] What are the options then for sparse search approaches?
-- Use pgvector with dense vectors and no indexing. Heavy to store and slow to search.
-- Use pgvector sparse vectors to store. Can use ivfflat for indexing. Not sure what drawbacks are there.
-[] How does bm25 work, methodically?
-[] How does ivfflat work?
-[] What's the benefit of pgvecto.rs for bm25 if sparse vectors are used?
-[] Run a basic script (no pgvecto.rs).
-[] Run using pgvecto.rs to index the sparse search.
 
 
