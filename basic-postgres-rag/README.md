@@ -188,6 +188,7 @@ Example output:
     - Use a custom implementation of BM25 that allows for indexing (done in the advanced repo).
     - Use a dense vector model for the embeddings. This will be slower and require more memory to store the embeddings.
     - Use pgvecto.rs, a rust implementation that should support indexing with ivfflat.
+    - You can try to use a dense vector to store sparse embeddings, but a) small amounts of data won't allow you to run an ivfflat (that's fine, just stops the demo) and b) the vector size is 30k+ due to BERT, which exceeds the max of for pgvector AND far exceeds the 2k max for ivfflat index size.
 
 - **Notes on the pg_bestmatch extension**:
   - Under the hood, the text is tokenized using bert uncased.
