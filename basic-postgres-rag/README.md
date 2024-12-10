@@ -2,6 +2,10 @@
 
 A minimal demo showing how to use Postgres for vector search using pgvector (dense) and pg_bestmatch (sparse/BM25).
 
+>[!WARNING]
+>This isn't very robust because you have to try to sort for the 2,000 most important terms.
+>Currently, there's not enough data to set an index using ivfflat.
+
 ## Advanced Version
 
 For additional features beneficial for production/enterprise applications, see Trelis' [Advanced Inference Repo](https://trelis.com/ADVANCED-inference).
@@ -67,9 +71,11 @@ cargo pgrx install --release
 ### Set Up Database
 
 ```bash
-# Optional: Drop existing database if starting fresh
-dropdb vector_demo || true
-dropuser vector_user || true
+# Optional: Drop existing database and user if starting fresh
+psql postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'vector_demo';"
+psql postgres -c "DROP DATABASE IF EXISTS vector_demo;"
+psql postgres -c "DROP OWNED BY vector_user;" || true
+psql postgres -c "DROP USER IF EXISTS vector_user;"
 
 # Create database and user
 createdb vector_demo
@@ -120,38 +126,93 @@ psql -d vector_demo
 
 ```sql
 -- First ensure BM25 is properly set up
--- The bm_catalog schema is created automatically when you install the pg_bestmatch extension using CREATE EXTENSION pg_bestmatch.
 SET search_path TO public, bm_catalog;
 
--- Recreate and refresh BM25 statistics
-DROP TABLE IF EXISTS documents_content_bm25;
-SELECT bm25_create('documents', 'content', 'documents_content_bm25');
-SELECT bm25_refresh('documents_content_bm25');
+-- Create a table to store global term statistics
+CREATE TABLE IF NOT EXISTS term_stats (
+    term_id INTEGER PRIMARY KEY,
+    global_importance FLOAT4,
+    rank INTEGER
+);
 
--- Recreate sparse vector column
+-- Populate global term statistics
+INSERT INTO term_stats (term_id, global_importance)
+SELECT 
+    (v).element as term_id,
+    sum(abs((v).value)) as global_importance
+FROM documents d,
+     unnest(bm25_document_to_svector('documents_content_bm25', content, 'pgvector')) v
+GROUP BY (v).element
+ON CONFLICT (term_id) DO UPDATE
+SET global_importance = EXCLUDED.global_importance;
+
+-- Update term rankings
+WITH ranked_terms AS (
+    SELECT 
+        term_id,
+        global_importance,
+        row_number() OVER (ORDER BY global_importance DESC) as rank
+    FROM term_stats
+)
+UPDATE term_stats ts
+SET rank = rt.rank
+FROM ranked_terms rt
+WHERE ts.term_id = rt.term_id;
+
+-- Store BM25 vectors using top global terms
 ALTER TABLE documents DROP COLUMN IF EXISTS sparse_vector;
-ALTER TABLE documents ADD COLUMN sparse_vector sparsevec;
-UPDATE documents 
-SET sparse_vector = bm25_document_to_svector('documents_content_bm25', content, 'pgvector')::sparsevec;
+ALTER TABLE documents ADD COLUMN sparse_vector vector(2000);
 
--- Verify sparse vectors were created properly
-SELECT content, sparse_vector IS NOT NULL as has_vector 
-FROM documents;
+-- Create a function to map sparse vectors to top global terms
+CREATE OR REPLACE FUNCTION map_to_top_terms(sparse_vector sparsevec)
+RETURNS vector(2000) AS $$
+DECLARE
+    result float4[];
+BEGIN
+    result := array_fill(0::float4, ARRAY[2000]);
+    
+    -- Map values to their global rank positions (only top 2000)
+    FOR i IN 1..array_length((sparse_vector).index, 1) LOOP
+        SELECT rank INTO i
+        FROM term_stats 
+        WHERE term_id = (sparse_vector).index[i]
+        AND rank <= 2000;
+        
+        IF FOUND THEN
+            result[i] := (sparse_vector).value[i];
+        END IF;
+    END LOOP;
+    
+    RETURN result::vector;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Update document vectors
+UPDATE documents 
+SET sparse_vector = map_to_top_terms(
+    bm25_document_to_svector('documents_content_bm25', content, 'pgvector')
+);
+
+-- Create IVFFlat index on sparse vectors
+CREATE INDEX ON documents USING ivfflat (sparse_vector vector_l2_ops) WITH (lists = 100);
+
+-- Function to map query vectors
+CREATE OR REPLACE FUNCTION map_query_to_top_terms(query_text TEXT)
+RETURNS vector AS $$
+BEGIN
+    RETURN map_to_top_terms(
+        bm25_query_to_svector('documents_content_bm25', query_text, 'pgvector')
+    );
+END;
+$$ LANGUAGE plpgsql;
 
 -- Test BM25 search query
-WITH query_vector AS (
-    SELECT bm25_query_to_svector(
-        'documents_content_bm25',
-        'Paris capital',  -- Using a test query we know should match
-        'pgvector'
-    )::sparsevec AS qv
-)
 SELECT 
     content,
-    (sparse_vector <#> (SELECT qv FROM query_vector)) * -1 as bm25_score
+    (sparse_vector <#> map_query_to_top_terms('Paris capital')) * -1 as bm25_score
 FROM documents
-WHERE sparse_vector IS NOT NULL  -- Ensure we only search valid vectors
-ORDER BY sparse_vector <#> (SELECT qv FROM query_vector)
+WHERE sparse_vector IS NOT NULL
+ORDER BY sparse_vector <#> map_query_to_top_terms('Paris capital')
 LIMIT 4;
 ```
 
@@ -194,3 +255,35 @@ Example output:
     - Capitalization is not preserved (which is good)
     - There will be some stemming, but it will follow BERT's syntax.
     - There will be no stop-word removal.
+
+- **IVFFlat Index Details**:
+  - The `lists` parameter (default 100) determines the number of clusters/partitions
+  - Higher values mean:
+    - Faster search (searches fewer vectors)
+    - Less accurate results
+    - Slower index creation
+    - More memory usage
+  - Rule of thumb: `lists = sqrt(num_rows)` for balanced performance
+  - For small datasets (<10k rows), smaller values (50-100) work well
+  - For large datasets, consider: `lists = num_rows / 1000`
+
+- **Sparse Search Updates**:
+  - Now using pgvector's vector type with 2000 dimensions (pgvector's limit)
+  - Maintaining global term statistics across all documents
+  - Terms are mapped to fixed positions based on global importance
+  - Main tradeoffs:
+    1. Memory usage: Each vector stores 16,000 dimensions
+    2. Information loss from dropping less globally significant terms
+    3. Some precision loss from float32 representation
+    4. Needs periodic updates to global term statistics
+  - Benefits:
+    1. Consistent term-to-dimension mapping across all documents
+    2. Global term importance is considered
+    3. Can use standard indexing methods
+    4. Potentially faster queries with large datasets due to indexing
+
+- **Global Term Statistics**:
+  - Terms are ranked by their total importance across all documents
+  - Top 2000 most important terms get fixed positions
+  - New documents use the same term-to-position mapping
+  - Should be periodically updated when corpus changes significantly

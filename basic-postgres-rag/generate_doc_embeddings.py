@@ -32,9 +32,25 @@ def setup_demo_data(connection_string="dbname=vector_demo user=vector_user passw
     # Demo texts
     texts = [
         'The capital of France is Paris',
-        'Paris is known for the Eiffel Tower',
+        'Paris is known for the Eiffel Tower', 
         'The capital of Japan is Tokyo',
-        'Tokyo is famous for sushi'
+        'Tokyo is famous for sushi',
+        'London is the capital of England',
+        'Big Ben is a famous landmark in London',
+        'Rome is the capital of Italy',
+        'The Colosseum is located in Rome',
+        'Berlin is the capital of Germany',
+        'The Brandenburg Gate is in Berlin',
+        'Madrid is the capital of Spain',
+        'The Prado Museum is in Madrid',
+        'Moscow is the capital of Russia',
+        'The Kremlin is located in Moscow',
+        'Beijing is the capital of China',
+        'The Great Wall of China is near Beijing',
+        'Cairo is the capital of Egypt',
+        'The pyramids are located near Cairo',
+        'New York City is the largest city in the USA',
+        'The Statue of Liberty is in New York City'
     ]
     print(f"Preparing to process {len(texts)} demo texts...")
     
