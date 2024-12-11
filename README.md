@@ -9,3 +9,4 @@ Find other tutorials by subscribing to either:
 
 ## Repo Contents:
 - basic-postgres-rag: Scripts to setup up a basic retrieval system with postgres.
+- multi-lora: Scripts to run multi-lora inference using LoRAX.
