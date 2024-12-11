@@ -8,5 +8,5 @@ Find other tutorials by subscribing to either:
   - [the Trelis Youtube Channel](https://www.youtube.com/@TrelisResearch)
 
 ## Repo Contents:
-- basic-postgres-rag: Scripts to setup up a basic retrieval system with postgres.
-- multi-lora: Scripts to run multi-lora inference using LoRAX.
+- `basic-postgres-rag`: Scripts to setup up a basic retrieval system with postgres.
+- `multi-lora`: Scripts to run multi-lora inference using LoRAX.
