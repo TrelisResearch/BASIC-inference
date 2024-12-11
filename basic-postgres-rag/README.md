@@ -194,8 +194,6 @@ Note: The query vector format `{index:value,...}/dimension` shows which terms ar
 - **Sparse Search**:
   - No index used (highly sparse vectors)
   - `<#>` operator returns the inner product, which is the correct way to sum up the bm25 components.
-  - Lower distance indicates higher BM25 relevance
-  - Negative distances are normal (higher magnitude means better match)
 
 - **Sparse Search**:
   - No index is used because i) indexing with hnsw works poorly for sparse vectors, and ii) ivfflat is not supported.

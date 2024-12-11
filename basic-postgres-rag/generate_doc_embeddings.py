@@ -26,7 +26,7 @@ def get_embeddings(texts, prefix="search_document: "): # if the query type is no
     return normalized
 
 def setup_demo_data(connection_string="dbname=vector_demo user=vector_user password=demo_password"):
-    """Create table, insert texts, and add their embeddings."""
+    """Create table, insert texts, calculate embeddings, and add their embeddings."""
     print("Starting demo data setup...")
     
     # Demo texts
