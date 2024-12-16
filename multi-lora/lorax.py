@@ -20,7 +20,7 @@ def main(adapter_id=None, long_prompt=False):
         prompt = "Write me a long essay on the topic of spring."
         max_tokens = 500
     else:
-        prompt = "How many players are on the field on each team at the start of a drop-off?"
+        prompt = "How many players on a touch rugby team?"
         max_tokens = 100
 
     model_name = BASE_MODEL if not adapter_id else adapter_id

@@ -18,8 +18,11 @@ You can purchase lifetime access to the ADVANCED version of this repo at: https:
 
 ## Setup
 
+Start up a vLLM server using vllm docs or a [one-click Runpod server](https://runpod.io/console/deploy?template=p4l5qvim7s&ref=jmfkcdio).
+
 1. Create a virtual environment and install dependencies:
 ```
+cd multi-lora
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
@@ -27,7 +30,7 @@ uv pip install -r requirements.txt
 
 2. Export the required environment variables:
 ```
-export RUNPOD_ENDPOINT="https://42ijj5lxthuzby-8000.proxy.runpod.net"
+export RUNPOD_ENDPOINT="https://<YOUR-POD-ID>-8000.proxy.runpod.net"
 export BASE_MODEL="unsloth/Meta-Llama-3.1-8B-Instruct"
 ```
 
@@ -42,11 +45,7 @@ uv run lorax.py
 
 2. LoRA adapter inference (specify HuggingFace adapter slug):
 ```
-uv run lorax.py --adapter Trelis/Meta-Llama-3.1-8B-Instruct-touch-rugby-3-adapters
-```
-or for qwen:
-```
-uv run lorax.py --adapter Trelis/Qwen2.5-7B-Instruct-touch-rugby-1
+uv run lorax.py --adapter Trelis/Meta-Llama-3.1-8B-Instruct-touch-rugby-2-adapters
 ```
 
 3. Long prompt testing:
@@ -54,8 +53,6 @@ uv run lorax.py --adapter Trelis/Qwen2.5-7B-Instruct-touch-rugby-1
 uv run lorax.py --long-prompt
 ```
 This mode uses a longer prompt ("Write me a long essay on the topic of spring") with a 500 token limit to better measure performance metrics.
-
-## Metrics
 
 The script outputs:
 - Response content
@@ -67,7 +64,7 @@ These metrics are particularly useful when using `--long-prompt` to evaluate mod
 ## Environment
 
 The script is configured to use:
-- API Endpoint: https://jn7uc06g6k2dgz-8000.proxy.runpod.net
+- API Endpoint: https://<YOUR-POD-ID>-8000.proxy.runpod.net
 - Default Base Model: unsloth/Meta-Llama-3.1-8B-Instruct
 
 ## Replication Testing
