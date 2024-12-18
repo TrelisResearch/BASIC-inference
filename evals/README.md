@@ -8,9 +8,13 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 - [x] Log traces to Braintrust.
 - [x] Define an evaluation dataset consisting of questions and answers. Done in Braintrust.
     - [x] Explore different evaluation types, e.g. criterion based versus factuality based. Works fine, although datasets seem to always require `input` and `expected` values, rather than `criteria`. This seems to be because I changed the expectations for the ClosedQA scorer and that stuck.
-    - [ ] Allow the evaluation dataset to be expanded/augmented with production data.
+    - [ ] Allow the evaluation dataset to be expanded/augmented with production data. NEXT.
 - [x] Evaluate the chatbot on the dataset.
-    - [x] Abstract the pipeline such that it may be used in the command line interface OR for evaluations.
+    - [x] Abstract the pipeline such that it may be used in the command line interface OR for evaluations. This is critical to allow evals to easily be run on a production pipeline.
+
+Feedback for Braintrust:
+1. When running evals, it's not obvious how the project is being set and how the eval name is set. The Eval class expects a name, and that seems to be the project name.
+2. Users are able to overwrite the behaviour of default Scorers. This poses an issue because errors the user makes propagate when deriving new scorers from the default. Suggest keeping the default scorer values as defaults.
 
 ## Project Structure
 
