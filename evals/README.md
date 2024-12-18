@@ -7,10 +7,17 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 - [x] Create a simple chatbot command line interface (to which I could add retrieval or other techniques).
 - [x] Log traces to Braintrust.
 - [x] Define an evaluation dataset consisting of questions and answers. Done in Braintrust.
-    - [x] Explore different evaluation types, e.g. criterion based versus factuality based. Works fine, although datasets seem to always require `input` and `expected` values, rather than `criteria`.
+    - [x] Explore different evaluation types, e.g. criterion based versus factuality based. Works fine, although datasets seem to always require `input` and `expected` values, rather than `criteria`. This seems to be because I changed the expectations for the ClosedQA scorer and that stuck.
     - [ ] Allow the evaluation dataset to be expanded/augmented with production data.
-- [ ] Evaluate the chatbot on the dataset.
-    - [ ] This requires abstracting the pipeline such that it may be used in the command line interface OR for evaluations.
+- [x] Evaluate the chatbot on the dataset.
+    - [x] Abstract the pipeline such that it may be used in the command line interface OR for evaluations.
+
+## Project Structure
+
+- `pipeline.py` - Core chat completion logic and Braintrust integration
+- `touch_rugby_bot.py` - Command line interface
+- `config.py` - Configuration settings for model and evaluations
+- `run_evals.py` - Evaluation script using Braintrust datasets and scorers
 
 ## Features
 
@@ -18,6 +25,7 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 - Specialized knowledge about touch rugby rules, techniques, and strategies
 - Powered by OpenAI's GPT-4o-mini model
 - Logging and monitoring via Braintrust
+- Automated evaluations using Braintrust datasets and scorers
 - Simple, easy-to-use interface
 
 ## Installation
@@ -35,7 +43,56 @@ echo "OPENAI_API_KEY=your_openai_key_here" > .env
 echo "BRAINTRUST_API_KEY=your_braintrust_key_here" >> .env
 ```
 
-4. Run the bot:
+## Usage
+
+### Chat Interface
+
+Run the chat bot from the command line:
 ```bash
 uv run touch_rugby_bot.py
 ```
+
+### Running Evaluations
+
+Run the evaluations using:
+```bash
+uv run eval_touch_rugby.py
+```
+
+The evaluation uses:
+- Dataset: "touch-rugby-evals" (configured in Braintrust)
+- Scorer: "touch-criteria" (configured in Braintrust)
+- Project: "touch-rugby-bot"
+
+These settings can be modified in `config.py`.
+
+## Configuration
+
+The project uses two main configuration objects in `config.py`:
+
+```python
+EVAL_CONFIG = {
+    "dataset": "touch-rugby-evals",
+    "scorer": "touch-criteria",
+    "project": "touch-rugby-bot"
+}
+
+MODEL_CONFIG = {
+    "model": "gpt-4o-mini",
+    "temperature": 0.7
+}
+```
+
+## Development
+
+The project is structured to separate concerns:
+- Core chat completion logic is in `pipeline.py`
+- Command line interface is in `touch_rugby_bot.py`
+- Evaluation logic is in `run_evals.py`
+- Configuration is in `config.py`
+
+This makes it easy to:
+- Add new features to the pipeline
+- Create new interfaces
+- Run evaluations with different datasets/scorers
+- Modify model parameters
