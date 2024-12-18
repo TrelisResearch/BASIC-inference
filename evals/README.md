@@ -13,8 +13,9 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
     - [x] Abstract the pipeline such that it may be used in the command line interface OR for evaluations. This is critical to allow evals to easily be run on a production pipeline.
 
 Feedback for Braintrust:
-1. When running evals, it's not obvious how the project is being set and how the eval name is set. The Eval class expects a name, and that seems to be the project name.
-2. Users are able to overwrite the behaviour of default Scorers. This poses an issue because errors the user makes propagate when deriving new scorers from the default. Suggest keeping the default scorer values as defaults.
+1. Users are able to overwrite the behaviour of default Scorers. This poses an issue because errors the user makes propagate when deriving new scorers from the default. Suggest keeping the default scorer values as defaults.
+2. When running evals, it's not obvious how the project is being set and how the eval name is set. The Eval class expects a name, and that seems to be the project name.
+3. I want to copy production logs into a dataset. Right now, that seems to copy across data in llm format. How do I format that properly - use the API?
 
 ## Project Structure
 
