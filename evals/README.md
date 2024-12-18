@@ -7,7 +7,7 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 - [x] Create a simple chatbot command line interface (to which I could add retrieval or other techniques).
 - [x] Log traces to Braintrust.
 - [x] Define an evaluation dataset consisting of questions and answers. Done in Braintrust.
-    - [ ] Explore different evaluation types, e.g. criterion based versus factuality based.
+    - [x] Explore different evaluation types, e.g. criterion based versus factuality based. Works fine, although datasets seem to always require `input` and `expected` values, rather than `criteria`.
     - [ ] Allow the evaluation dataset to be expanded/augmented with production data.
 - [ ] Evaluate the chatbot on the dataset.
     - [ ] This requires abstracting the pipeline such that it may be used in the command line interface OR for evaluations.
