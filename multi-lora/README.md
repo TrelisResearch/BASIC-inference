@@ -18,7 +18,7 @@ You can purchase lifetime access to the ADVANCED version of this repo at: https:
 
 ## Setup
 
-Start up a vLLM server using vllm docs or a [one-click Runpod server](https://runpod.io/console/deploy?template=p4l5qvim7s&ref=jmfkcdio).
+Start up a Predibase TGI server using the LoRAX docs on Github or a [one-click Runpod server](https://runpod.io/console/deploy?template=p4l5qvim7s&ref=jmfkcdio).
 
 1. Create a virtual environment and install dependencies:
 ```
