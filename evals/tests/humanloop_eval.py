@@ -5,7 +5,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
-humanloop = Humanloop(api_key=os.getenv("YOUR_HUMANLOOP_API_KEY"))
+humanloop = Humanloop(api_key=os.getenv("HUMANLOOP_API_KEY"))
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Define your Prompt in code

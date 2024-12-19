@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from braintrust import Eval, Dataset, init_logger
 from pipeline import TouchRugbyAssistant
-from config import EVAL_CONFIG
+from config import BT_EVAL_CONFIG
 import os
 from datetime import datetime
  
@@ -27,11 +27,11 @@ def run_evaluation():
         response = assistant.get_response(input_data)
         return response
 
-    dataset = braintrust.init_dataset(project=EVAL_CONFIG["project"], name=EVAL_CONFIG["dataset"])
+    dataset = braintrust.init_dataset(project=BT_EVAL_CONFIG["project"], name=BT_EVAL_CONFIG["dataset"])
     
     # Run the evaluation using the pre-defined scorer
     Eval(
-        name=EVAL_CONFIG["project"],
+        name=BT_EVAL_CONFIG["project"],
         data=dataset,
         task=task,
         scores=[Factuality]

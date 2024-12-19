@@ -11,8 +11,22 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 4. Run an evaluation of the chatbot on the dataset (either on the UI or from command line).
 
 ### Humanloop
-- [] Log traces to Humanloop.
-- [] 
+- [] Log traces to Humanloop. Stuck here getting examples to show up on the dashboard using the agent example.
+- [] Set up a scorer. I wanted to get an LLM to compare my answer to criteria, but this isn't obvious how to set up an evaluator to do this. I'm not clear on how I set the variables to do the comparison I want.
+- [] Generate a dataset. This was fairly easy but I don't know what the fields correspond to.
+- [] Run an eval from the UI. I can do this but because my scoring isn't set up properly it's hard to know what it means. Oddly, when I run an evaluation I don't see how to view the results.
+- [] Run an evaluation from command line. Probably I would be able to do this, if I could get the above working.
+- [] Create a dataset from existing logs. 
+
+Humanloop Feedback:
+0. It's cool that the sign-up flow includes a first example. Probably it should further illustrate how to get set up wiht logging. BTW the metrics shown are not useful / illustrative. The data shown is complex when I just want to see a score from 0 to 1.
+1. I'm not clear on how to get logs to start showing on the dashboard (incl. after running the agent.py example).
+2. The logging is complex to set up. Is it possible to provide an openai and gemini light wrapper that does this?
+3. I do like that I can use messages granularly in evaluations. This is useful and a painpoint in Braintrust.
+4. I'm expecting there to be some llm as a judge type template available in evaluators.
+5. I'm not clear on the variables I have access to for running an eval? I have access to the messages, but how do I reference a dataset?
+6. It's not obvious where datasets are on the dashboard, I later realised they are listed under Files on the left.
+7. The terminology of "prompts" is confusing to me. I would have expected the term to be "logs" or "traces". What does prompt mean? Does it mean question? Does it mean question plus system message?
 
 ### Braintrust
 - [x] Create a simple chatbot command line interface (to which I could add retrieval or other techniques).
@@ -33,19 +47,10 @@ Feedback for Braintrust:
 
 ## Project Structure
 
-- `pipeline.py` - Core chat completion logic and Braintrust integration
+- `pipelines/` - Pipeline implementations for Braintrust and Humanloop.
 - `touch_rugby_bot.py` - Command line interface
 - `config.py` - Configuration settings for model and evaluations
-- `run_evals.py` - Evaluation script using Braintrust datasets and scorers
-
-## Features
-
-- Interactive command line interface
-- Specialized knowledge about touch rugby rules, techniques, and strategies
-- Powered by OpenAI's GPT-4o-mini model
-- Logging and monitoring via Braintrust
-- Automated evaluations using Braintrust datasets and scorers
-- Simple, easy-to-use interface
+- `bt_eval_touch_rugby.py` - Evaluation script using Braintrust datasets and scorers
 
 ## Installation
 
@@ -53,13 +58,15 @@ Feedback for Braintrust:
 2. Install dependencies:
 ```bash
 uv venv
-uv pip install openai python-dotenv braintrust autoevals
+uv pip install -r requirements.txt
 ```
 
 3. Set up your API keys:
 ```bash
 echo "OPENAI_API_KEY=your_openai_key_here" > .env
 echo "BRAINTRUST_API_KEY=your_braintrust_key_here" >> .env
+echo "HUMANLOOP_API_KEY=your_humanloop_key_here" >> .env
+echo "GEMINI_API_KEY=your_gemini_key_here" >> .env
 ```
 
 ## Usage
@@ -71,11 +78,11 @@ Run the chat bot from the command line:
 uv run touch_rugby_bot.py
 ```
 
-### Running Evaluations
+### Running Evaluations with Braintrust
 
 Run the evaluations using:
 ```bash
-uv run eval_touch_rugby.py
+uv run bt_eval_touch_rugby.py
 ```
 
 The evaluation uses:
@@ -90,7 +97,7 @@ These settings can be modified in `config.py`.
 The project uses two main configuration objects in `config.py`:
 
 ```python
-EVAL_CONFIG = {
+BT_EVAL_CONFIG = {
     "dataset": "touch-rugby-evals",
     "scorer": "touch-criteria",
     "project": "touch-rugby-bot"
@@ -101,17 +108,3 @@ MODEL_CONFIG = {
     "temperature": 0.7
 }
 ```
-
-## Development
-
-The project is structured to separate concerns:
-- Core chat completion logic is in `pipeline.py`
-- Command line interface is in `touch_rugby_bot.py`
-- Evaluation logic is in `run_evals.py`
-- Configuration is in `config.py`
-
-This makes it easy to:
-- Add new features to the pipeline
-- Create new interfaces
-- Run evaluations with different datasets/scorers
-- Modify model parameters
