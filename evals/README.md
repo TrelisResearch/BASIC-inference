@@ -10,6 +10,10 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 3. Set up a scorer that evaluates answers based on the criteria.
 4. Run an evaluation of the chatbot on the dataset (either on the UI or from command line).
 
+### Humanloop
+- [] Log traces to Humanloop.
+- [] 
+
 ### Braintrust
 - [x] Create a simple chatbot command line interface (to which I could add retrieval or other techniques).
 - [x] Log traces to Braintrust.
