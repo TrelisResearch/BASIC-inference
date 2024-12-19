@@ -4,18 +4,28 @@ A command line chat bot that answers questions about touch rugby using OpenAI's 
 
 ## Objectives
 
+### Generic
+1. Instrument the generation pipeline to log traces to the evals software.
+2. Generate a dataset of questions and answers (or, questions and criteria for correct answers).
+3. Set up a scorer that evaluates answers based on the criteria.
+4. Run an evaluation of the chatbot on the dataset (either on the UI or from command line).
+
+### Braintrust
 - [x] Create a simple chatbot command line interface (to which I could add retrieval or other techniques).
 - [x] Log traces to Braintrust.
 - [x] Define an evaluation dataset consisting of questions and answers. Done in Braintrust.
     - [x] Explore different evaluation types, e.g. criterion based versus factuality based. Works fine, although datasets seem to always require `input` and `expected` values, rather than `criteria`. This seems to be because I changed the expectations for the ClosedQA scorer and that stuck.
-    - [ ] Allow the evaluation dataset to be expanded/augmented with production data. NEXT.
+    - [ ] Allow the evaluation dataset to be expanded/augmented with production data. Key issue is formatting the data appropriately.
 - [x] Evaluate the chatbot on the dataset.
     - [x] Abstract the pipeline such that it may be used in the command line interface OR for evaluations. This is critical to allow evals to easily be run on a production pipeline.
+    - [ ] I can't run an evaluation with my customer scorer from the UI...
 
 Feedback for Braintrust:
 1. Users are able to overwrite the behaviour of default Scorers. This poses an issue because errors the user makes propagate when deriving new scorers from the default. Suggest keeping the default scorer values as defaults.
 2. When running evals, it's not obvious how the project is being set and how the eval name is set. The Eval class expects a name, and that seems to be the project name.
 3. I want to copy production logs into a dataset. Right now, that seems to copy across data in llm format. How do I format that properly - use the API?
+4. I can't delete scorers on the UI.
+5. There is no way to add a custom-named row to a dataset in the UI.
 
 ## Project Structure
 
