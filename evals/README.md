@@ -3,29 +3,29 @@
 A command line chat bot that answers questions about touch rugby using OpenAI's GPT-4o-mini model, with Braintrust logging.
 
 ## Objectives
-
 ### Generic
 1. Instrument the generation pipeline to log traces to the evals software.
 2. Generate a dataset of questions and answers (or, questions and criteria for correct answers).
-3. Set up a scorer that evaluates answers based on the criteria.
+3. Set up a scorer/evaluator that evaluates answers based on the criteria.
 4. Run an evaluation of the chatbot on the dataset (either on the UI or from command line).
+5. Add production data rows to the dataset for evaluation.
 
 ### Humanloop
 - [] Log traces to Humanloop. Stuck here getting examples to show up on the dashboard using the agent example.
-- [] Set up a scorer. I wanted to get an LLM to compare my answer to criteria, but this isn't obvious how to set up an evaluator to do this. I'm not clear on how I set the variables to do the comparison I want.
+- [] Set up a scorer/evaluator. I wanted to get an LLM to compare my answer to criteria, but this isn't obvious how to set up an evaluator to do this. I'm not clear on how I set the variables to do the comparison I want.
 - [] Generate a dataset. This was fairly easy but I don't know what the fields correspond to.
 - [] Run an eval from the UI. I can do this but because my scoring isn't set up properly it's hard to know what it means. Oddly, when I run an evaluation I don't see how to view the results.
 - [] Run an evaluation from command line. Probably I would be able to do this, if I could get the above working.
 - [] Create a dataset from existing logs. 
 
 Humanloop Feedback:
-0. It's cool that the sign-up flow includes a first example. Probably it should further illustrate how to get set up wiht logging. BTW the metrics shown are not useful / illustrative. The data shown is complex when I just want to see a score from 0 to 1.
+0. It's cool that the sign-up flow includes a first example. Probably it should further illustrate how to get set up with logging. BTW the metrics shown are not useful / illustrative. The data shown is complex when I just want to see a score from 0 to 1.
 1. I'm not clear on how to get logs to start showing on the dashboard (incl. after running the agent.py example).
 2. The logging is complex to set up. Is it possible to provide an openai and gemini light wrapper that does this?
 3. I do like that I can use messages granularly in evaluations. This is useful and a painpoint in Braintrust.
 4. I'm expecting there to be some llm as a judge type template available in evaluators.
 5. I'm not clear on the variables I have access to for running an eval? I have access to the messages, but how do I reference a dataset?
-6. It's not obvious where datasets are on the dashboard, I later realised they are listed under Files on the left.
+6. It's not obvious where datasets are on the dashboard, I later realised they are listed under Files on the left. It would be good to allow import of "prompts" into a dataset.
 7. The terminology of "prompts" is confusing to me. I would have expected the term to be "logs" or "traces". What does prompt mean? Does it mean question? Does it mean question plus system message?
 
 ### Braintrust
