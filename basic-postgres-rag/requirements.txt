@@ -1,4 +1,4 @@
-certifi==2024.8.30
+certifi==2026.10.19
 charset-normalizer==3.4.0
 einops==0.8.0
 filelock==3.16.1
